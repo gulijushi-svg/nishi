@@ -1,0 +1,131 @@
+[
+  {
+    "id": "SYN-HW-001",
+    "title": "作业:《数据库原理》第一章作业",
+    "content": "课程名称：数据库原理\n作业名称：第一章作业\n开始时间：2026-10-21 12:08\n结束时间：2026-10-25 23:00",
+    "sender": "学习通知",
+    "timeText": "2026-10-21 12:08:00",
+    "category": "HOMEWORK",
+    "deadline": "2026-10-25 23:00",
+    "attachmentName": "第一章作业",
+    "attachmentUrl": "https://example.com/work?taskrefId=1001",
+    "attachmentKind": "work"
+  },
+  {
+    "id": "SYN-HW-002",
+    "title": "作业:《数据库原理》第二章作业",
+    "content": "课程名称：数据库原理\n作业名称：第二章作业\n开始时间：2026-10-21 12:11\n结束时间：2026-11-01 23:00",
+    "sender": "学习通知",
+    "timeText": "2026-10-21 12:11:00",
+    "category": "HOMEWORK",
+    "deadline": "2026-11-01 23:00",
+    "attachmentName": "第二章作业",
+    "attachmentUrl": "https://example.com/work?taskrefId=1002",
+    "attachmentKind": "work"
+  },
+  {
+    "id": "SYN-HW-003",
+    "title": "作业:《软件工程》上机实验作业2",
+    "content": "课程名称：软件工程\n作业名称：上机实验作业2\n开始时间：2026-10-23 09:37\n结束时间：2026-10-28 23:55",
+    "sender": "学习通知",
+    "timeText": "2026-10-23 09:37:00",
+    "category": "HOMEWORK",
+    "deadline": "2026-10-28 23:55",
+    "attachmentName": "上机实验作业2",
+    "attachmentUrl": "https://example.com/work?taskrefId=1003",
+    "attachmentKind": "work"
+  },
+  {
+    "id": "SYN-HW-004",
+    "title": "作业:《软件工程》第五章作业",
+    "content": "课程名称：软件工程\n作业名称：第五章作业\n开始时间：2026-10-23 10:48\n结束时间：2026-10-30 11:48",
+    "sender": "学习通知",
+    "timeText": "2026-10-23 10:48:00",
+    "category": "HOMEWORK",
+    "deadline": "2026-10-30 11:48",
+    "attachmentName": "第五章作业",
+    "attachmentUrl": "https://example.com/work?taskrefId=1004",
+    "attachmentKind": "work"
+  },
+  {
+    "id": "SYN-REM-001",
+    "title": "作业结束提醒",
+    "content": "课程名称：数据库原理\n作业名称：第一章作业\n你的作业还有48个小时就要结束，请尽快作答",
+    "sender": "学习通知",
+    "timeText": "2026-10-23 15:00:00",
+    "category": "HOMEWORK",
+    "attachmentName": "第一章作业",
+    "attachmentUrl": "https://example.com/work?taskrefId=1001",
+    "attachmentKind": "work"
+  },
+  {
+    "id": "SYN-EX-001",
+    "title": "考试通知",
+    "content": "课程名称：安全与急救\n考试名称：安全与急救\n考试时间：09-08 00:00 至 2027-01-04 23:59\n考试时长：60分钟\n考试形式：自主考试",
+    "sender": "学习通知",
+    "timeText": "2026-09-07 17:28:00",
+    "category": "HOMEWORK",
+    "attachmentName": "安全与急救",
+    "attachmentUrl": "https://example.com/exam?taskrefId=2001",
+    "attachmentKind": "exam"
+  },
+  {
+    "id": "SYN-EX-002",
+    "title": "考试通知",
+    "content": "课程名称：实验室安全\n考试名称：实验室安全\n考试时间：09-08 00:00 至 2027-01-04 23:59\n考试时长：60分钟\n考试形式：自主考试",
+    "sender": "学习通知",
+    "timeText": "2026-09-07 17:27:00",
+    "category": "HOMEWORK",
+    "attachmentName": "实验室安全",
+    "attachmentUrl": "https://example.com/exam?taskrefId=2002",
+    "attachmentKind": "exam"
+  },
+  {
+    "id": "SYN-CH-001",
+    "title": "《数据库原理》调课通知",
+    "content": "因明天下午（周三，9月23日）有会议，明天下午678节的《数据库原理》课程调整到明天上午345节，地点在示例楼A101，请相互通知。",
+    "sender": "教师甲",
+    "timeText": "2026-09-22 21:08:00",
+    "category": "ANNOUNCEMENT"
+  },
+  {
+    "id": "SYN-CH-002",
+    "title": "《软件工程》调课通知",
+    "content": "下周三10月21日上午的课程调整到本周六10月17日上午3.4.5节，地点示例楼B203，请相互通知。",
+    "sender": "教师乙",
+    "timeText": "2026-10-15 16:25:00",
+    "category": "ANNOUNCEMENT"
+  },
+  {
+    "id": "SYN-CH-003",
+    "title": "本周《数据库原理》调课通知",
+    "content": "因要参加会议，本周三的数据库原理课程和周五的操作系统课程互调，调整后周三下午上《操作系统》，周五上午345节上《数据库原理》，请相互转告。",
+    "sender": "教师甲",
+    "timeText": "2026-10-13 06:43:00",
+    "category": "ANNOUNCEMENT"
+  },
+  {
+    "id": "SYN-CH-004",
+    "title": "《软件工程》课程紧急调整通知",
+    "content": "按原通知今天的课程4.5节上课，因会议时长较长，本次课程停课，上课时间另行通知，请相互转告。",
+    "sender": "教师乙",
+    "timeText": "2026-09-09 09:31:00",
+    "category": "ANNOUNCEMENT"
+  },
+  {
+    "id": "SYN-CH-005",
+    "title": "关于第二周形势与政策课调整的通知",
+    "content": "因老师被学校外派参加9月13-18日的培训，第二周课程不能按时上课。老师已经在教务系统上调课，您可以更新课表后查看最新上课时间、地点。",
+    "sender": "教师丙",
+    "timeText": "2026-09-11 11:10:00",
+    "category": "ANNOUNCEMENT"
+  },
+  {
+    "id": "SYN-ANN-001",
+    "title": "关于同学们请假流程的提醒",
+    "content": "请假请提前联系辅导员并在教务系统提交申请。",
+    "sender": "教务通知",
+    "timeText": "2026-09-10 10:00:00",
+    "category": "ANNOUNCEMENT"
+  }
+]

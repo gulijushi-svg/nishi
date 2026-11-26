@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <!-- Screenshots cannot contact accounts, SMS gateways, or water/laundry devices. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <application>
+        <activity android:name=".widget.ServiceWidgetPreviewActivity" android:exported="true" tools:replace="android:exported" />
+        <activity android:name=".widget.WidgetPreviewActivity" android:exported="true" tools:replace="android:exported" />
+        <activity android:name=".demo.DemoActivity" android:exported="true" android:label="泥石 · 演示" android:theme="@style/Theme.Timetable" />
+    </application>
+</manifest>

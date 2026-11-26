@@ -1,0 +1,4 @@
+# 可选：复制为 water.properties 覆盖内置配置。
+# 默认值与 life-798 客户端保持一致，留空时使用内置值。
+API_GATEWAY=https://i.ilife798.com/api/v1
+API_CID=drinkwaterapp123456789

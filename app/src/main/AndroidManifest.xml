@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 笔记提醒是「今晚 20:00」这类分钟级时刻，需要精确闹钟；未授权时自动退化为非精确 -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!-- Android 11+ 包可见性：用于「去学习通」时判断官方 App 是否安装 -->
+    <queries>
+        <package android:name="com.chaoxing.mobile" />
+    </queries>
+
+    <application
+        android:name=".TimetableApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="true"
+        android:theme="@style/Theme.Timetable">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Timetable">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.login.ScheduleWebImportActivity"
+            android:exported="false"
+            android:label="网页导入课表"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+        <activity
+            android:name=".ui.login.GradeWebImportActivity"
+            android:exported="false"
+            android:label="网页导入成绩"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+        <activity
+            android:name=".ui.grades.GradesActivity"
+            android:exported="false"
+            android:label="成绩查询" />
+        <activity
+            android:name=".ui.electricity.ElectricityActivity"
+            android:exported="false"
+            android:label="宿舍电费" />
+        <activity
+            android:name="io.github.g00fy2.quickie.QRScannerActivity"
+            android:screenOrientation="portrait"
+            tools:replace="android:screenOrientation" />
+        <activity android:name=".widget.ServiceWidgetActivity" android:exported="false" android:label="组件设备绑定" />
+        <activity android:name=".widget.ServiceWidgetPreviewActivity" android:exported="false" android:label="生活服务组件" />
+
+        <!-- 课程笔记提醒的精确闹钟回执（笔记到点发系统通知） -->
+        <receiver
+            android:name=".notify.NoteReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.fengkao.timetable.NOTE_REMINDER_TICK" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".widget.WaterControlWidgetProvider" android:exported="false" android:label="@string/water_control_widget_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/water_control_widget" />
+        </receiver>
+        <!-- Widget 预览仅供应用内或演示构建调用，不向其他应用暴露真实课表。 -->
+        <activity
+            android:name=".widget.WidgetPreviewActivity"
+            android:exported="false"
+            android:label="Widget 预览" />
+
+        <!-- 2×2：小尺寸核心 Widget -->
+        <receiver
+            android:name=".widget.Widget2x2Provider"
+            android:exported="false"
+            android:label="@string/widget_2x2_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.appwidget.action.APPWIDGET_OPTIONS_CHANGED" />
+                <action android:name="com.fengkao.timetable.widget.ALARM_TICK" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/next_class_widget_2x2" />
+        </receiver>
+
+        <!-- 4×2：信息增强 Widget -->
+        <receiver
+            android:name=".widget.Widget4x2Provider"
+            android:exported="false"
+            android:label="@string/widget_4x2_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.appwidget.action.APPWIDGET_OPTIONS_CHANGED" />
+                <action android:name="com.fengkao.timetable.widget.ALARM_TICK" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/next_class_widget_4x2" />
+        </receiver>
+    </application>
+</manifest>
