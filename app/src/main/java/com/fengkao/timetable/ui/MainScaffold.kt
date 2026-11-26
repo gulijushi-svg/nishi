@@ -1,13 +1,11 @@
 package com.fengkao.timetable.ui
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,7 +29,6 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.School
-import com.fengkao.timetable.ui.electricity.ElectricityViewModel
 import com.fengkao.timetable.ui.grades.LearningScreen
 import com.fengkao.timetable.ui.service.ServiceScreen
 import com.fengkao.timetable.ui.wash.WashViewModel
@@ -45,6 +42,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,11 +50,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -94,6 +90,8 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.effects.lens
 import com.kyant.shapes.Capsule
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.sign
@@ -116,6 +114,13 @@ private val TabDefs = listOf(
     Triple(3, Icons.Outlined.Person, "我的"),
 )
 
+private data class ScaffoldState(
+    val selectedTab: Int,
+    val visitedTabs: Set<Int>,
+    val predictiveBack: Boolean,
+    val updateAvailable: com.fengkao.timetable.data.update.UpdateInfo?,
+)
+
 /** 选项内容的按压缩放系数（拖动药丸时图标随之放大） */
 val LocalTabPressScale = staticCompositionLocalOf<() -> Float> { { 1f } }
 
@@ -125,40 +130,66 @@ val LocalArrangeMode = staticCompositionLocalOf<(Boolean) -> Unit> { {} }
 /** 主框架：内容 + 悬浮液态玻璃底栏（backdrop 实时折射课程内容） */
 @Composable
 fun MainScaffold(viewModel: MainViewModel) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val scaffoldState by remember(viewModel) {
+        viewModel.state.map {
+            ScaffoldState(
+                selectedTab = it.selectedTab,
+                visitedTabs = it.visitedTabs,
+                predictiveBack = it.settings.predictiveBack,
+                updateAvailable = it.updateAvailable,
+            )
+        }.distinctUntilChanged()
+    }.collectAsStateWithLifecycle(
+        initialValue = viewModel.state.value.let {
+            ScaffoldState(it.selectedTab, it.visitedTabs, it.settings.predictiveBack, it.updateAvailable)
+        },
+    )
     val waterModel: WaterViewModel = viewModel()
     val washModel: WashViewModel = viewModel()
-    val electricityModel: ElectricityViewModel = viewModel()
     val xuexitongModel: com.fengkao.timetable.ui.xuexitong.XuexitongViewModel = viewModel()
     com.fengkao.timetable.ui.xuexitong.XuexitongNotificationPermissionEffect(xuexitongModel)
     val tabStateHolder = rememberSaveableStateHolder()
     val backdrop = rememberLayerBackdrop()
     // 画布排课模式：底栏让位，否则会压住底部的排课表单（demo 也是这么处理的）
     var arrangeActive by remember { mutableStateOf(false) }
+    val updateArrangeMode = remember { { on: Boolean -> arrangeActive = on } }
 
     Box(
         Modifier
             .fillMaxSize()
             .background(appBackground())
     ) {
-        // 内容注册为玻璃折射源：底栏实时折射滚动的课程卡片
-        Box(
-            Modifier
-                .fillMaxSize()
-        ) {
-            AnimatedContent(
-                targetState = state.selectedTab,
-                transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(180)) },
-                label = "tab",
-            ) { tab ->
-                tabStateHolder.SaveableStateProvider(tab) {
-                    CompositionLocalProvider(LocalPredictiveBack provides state.settings.predictiveBack, LocalPageActive provides (tab == state.selectedTab), LocalArrangeMode provides { on: Boolean -> arrangeActive = on }) {
-                    when (tab) {
-                        0 -> ScheduleScreen(viewModel, xuexitongModel)
-                        1 -> ServiceScreen(waterModel, washModel, electricityModel)
-                        2 -> LearningScreen(viewModel)
-                        3 -> ProfileScreen(viewModel, waterModel, washModel, xuexitongModel)
-                    }
+        // 已访问页面保留在组合树中，切回时只切换可见层，不再销毁并重建课表。
+        Box(Modifier.fillMaxSize()) {
+            scaffoldState.visitedTabs.sorted().forEach { tab ->
+                key(tab) {
+                    val active = tab == scaffoldState.selectedTab
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .zIndex(if (active) 1f else 0f)
+                            .graphicsLayer { alpha = if (active) 1f else 0f }
+                            .then(
+                                if (active) Modifier
+                                else Modifier
+                                    .clearAndSetSemantics {}
+                                    .blockPointerInput()
+                            ),
+                    ) {
+                        tabStateHolder.SaveableStateProvider(tab) {
+                            CompositionLocalProvider(
+                                LocalPredictiveBack provides scaffoldState.predictiveBack,
+                                LocalPageActive provides active,
+                                LocalArrangeMode provides updateArrangeMode,
+                            ) {
+                                when (tab) {
+                                    0 -> ScheduleScreen(viewModel, xuexitongModel)
+                                    1 -> ServiceScreen(waterModel, washModel)
+                                    2 -> LearningScreen(viewModel)
+                                    else -> ProfileScreen(viewModel, waterModel, washModel, xuexitongModel)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -172,7 +203,7 @@ fun MainScaffold(viewModel: MainViewModel) {
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
             GlassBottomBar(
-                selected = state.selectedTab,
+                selected = scaffoldState.selectedTab,
                 onTabSelected = viewModel::setTab,
                 backdrop = backdrop,
                 modifier = Modifier
@@ -186,7 +217,7 @@ fun MainScaffold(viewModel: MainViewModel) {
     // 检查更新：冷启动在后台静默查一次（12 小时内不重复），命中就弹窗
     val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(Unit) { viewModel.autoCheckUpdate() }
-    state.updateAvailable?.let { info ->
+    scaffoldState.updateAvailable?.let { info ->
         com.fengkao.timetable.ui.update.UpdateDialog(
             info = info,
             onDownload = {
@@ -293,26 +324,7 @@ private fun GlassBottomBar(
                 },
             contentAlignment = Alignment.CenterStart,
         ) {
-                // 1) 隐藏的品牌色内容层：被药丸折射后，选中项呈现品牌色
-                Row(
-                    Modifier
-                        .clearAndSetSemantics {}
-                        .alpha(0f)
-                        .graphicsLayer {
-                            translationX = panelOffset
-                            colorFilter = ColorFilter.tint(Color(0xFF4E6EF2))
-                        }
-                        .padding(horizontal = 4.dp)
-                        .fillMaxWidth()
-                        .height(PillHeight),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TabDefs.forEach { (i, icon, label) ->
-                        TabContent(i, icon, label, Modifier.weight(1f))
-                    }
-                }
-
-                // 2) 玻璃底板：统一 LiquidGlassSurface（Chrome 层）；onSurface 三层动态遮罩
+                // 玻璃底板：统一 LiquidGlassSurface（Chrome 层）；onSurface 三层动态遮罩
                 Row(
                     Modifier
                         .graphicsLayer { translationX = panelOffset }
@@ -391,7 +403,14 @@ private fun GlassBottomBar(
     }
 }
 
-/** 底栏 tab 内容（隐藏层与可见层共用，保证折射对位） */
+private fun Modifier.blockPointerInput(): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial).consume()
+        waitForUpOrCancellation(PointerEventPass.Initial)?.consume()
+    }
+}
+
+/** 底栏 tab 内容 */
 @Composable
 private fun TabContent(
     index: Int,

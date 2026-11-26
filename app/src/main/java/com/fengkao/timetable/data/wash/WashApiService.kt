@@ -37,7 +37,15 @@ interface WashApiService {
         @Field("token") token: String,
     ): WashResponse<WashGoodsScan>
 
-    /** 店铺商品列表：用于读取「洗护用品」等加购商品。 */
+    /** 官方洗衣 SKU 页的「洗护用品」加购列表。 */
+    @FormUrlEncoded
+    @POST("goods/attachList/v3")
+    suspend fun attachList(
+        @Field("goodsId") goodsId: String,
+        @Field("token") token: String,
+    ): WashResponse<List<WashAddon>>
+
+    /** 店铺商品列表：备用加购商品来源。 */
     @FormUrlEncoded
     @POST("appointNew/near/newMachines")
     suspend fun shopGoods(

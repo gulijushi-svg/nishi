@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fengkao.timetable.ui.MainViewModel
+import com.fengkao.timetable.ui.collectMainPageState
 import com.fengkao.timetable.ui.navigation.PageStack
 import com.fengkao.timetable.ui.profile.SettingsPage
 import com.fengkao.timetable.ui.profile.SettingsTheme
@@ -54,8 +55,8 @@ internal enum class LearningPage(val title: String) {
 }
 
 @Composable
-fun LearningScreen(viewModel: MainViewModel) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+fun LearningScreen(viewModel: MainViewModel, onNeedLogin: (() -> Unit)? = null) {
+    val state = viewModel.collectMainPageState()
     val toolsModel: AcademicToolsViewModel = viewModel()
     val toolsState by toolsModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -80,7 +81,7 @@ fun LearningScreen(viewModel: MainViewModel) {
                             }
                             AcademicToolsScreen(
                                 loggedIn = state.loggedIn || state.schedule?.courses.isNullOrEmpty() == false,
-                                onLogin = { viewModel.setTab(3) },
+                                onLogin = { onNeedLogin?.invoke() ?: viewModel.setTab(3) },
                                 onOverview = { go(LearningPage.OVERVIEW) },
                                 onExams = { go(LearningPage.EXAMS) },
                                 onNotices = { go(LearningPage.NOTICES) },

@@ -95,6 +95,8 @@ import com.fengkao.timetable.data.model.CourseNote
 import com.fengkao.timetable.data.model.PeriodTime
 import com.fengkao.timetable.ui.MainViewModel
 import com.fengkao.timetable.ui.LocalArrangeMode
+import com.fengkao.timetable.ui.collectMainPageState
+import com.fengkao.timetable.ui.navigation.LocalPageActive
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import com.fengkao.timetable.ui.glass.GlassElevation
@@ -153,8 +155,9 @@ private val CardTopShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ScheduleScreen(viewModel: MainViewModel, xuexitongModel: XuexitongViewModel) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state = viewModel.collectMainPageState()
     val xuexitong by xuexitongModel.state.collectAsStateWithLifecycle()
+    val active = LocalPageActive.current
     val context = LocalContext.current
 
     var showWeekSheet by remember { mutableStateOf(false) }
@@ -174,7 +177,7 @@ fun ScheduleScreen(viewModel: MainViewModel, xuexitongModel: XuexitongViewModel)
     // 「改课表」预填：从课表异动卡把新时间/地点带进添加课程表单，用户确认后才落库
     var pendingChange by remember { mutableStateOf<com.fengkao.timetable.data.xuexitong.ScheduleChange?>(null) }
 
-    LaunchedEffect(Unit) { xuexitongModel.enter() }
+    LaunchedEffect(active) { if (active) xuexitongModel.enter() }
     LaunchedEffect(state.openNoticesRequested) {
         if (state.openNoticesRequested) {
             showNoticeCenter = true
@@ -188,10 +191,14 @@ fun ScheduleScreen(viewModel: MainViewModel, xuexitongModel: XuexitongViewModel)
     val settings = state.settings
     val term = state.term ?: TermCalculator.autoTerm()
     val termStart = viewModel.termStartOf(settings, term)
+    val periodTimes = remember(settings.periodTimesJson) { settings.periodTimes() }
     // 教务课表 + 用户手动添加课程（本地）合并展示
-    val courses = (state.schedule?.courses.orEmpty()) + state.settings.customCourses.map { it.toCourseBlock() }
+    val courses = remember(state.schedule?.courses, settings.customCourses) {
+        (state.schedule?.courses.orEmpty()) + settings.customCourses.map { it.toCourseBlock() }
+    }
     val paletteMap = remember(courses) { paletteMapForCourses(courses) }
     val today = TermCalculator.today()
+    val onCourseClick = remember { { course: CourseBlock -> if (arrange == null) detailCourse = course } }
 
     // 桌面 Widget 深链：点击 Widget 课程 → 打开对应课程详情
     LaunchedEffect(state.widgetCourseKey) {
@@ -216,28 +223,32 @@ fun ScheduleScreen(viewModel: MainViewModel, xuexitongModel: XuexitongViewModel)
     val scheduleBackdrop = rememberLayerBackdrop()
 
     // 一级信息：正在上 / 下一节课状态（每 30 秒刷新）
-    val nowClock by produceState(initialValue = java.time.LocalTime.now()) {
+    val nowClock by produceState(initialValue = LocalTime.now(), active) {
+        if (!active) return@produceState
+        value = LocalTime.now()
         while (true) {
             kotlinx.coroutines.delay(30_000)
-            value = java.time.LocalTime.now()
+            value = LocalTime.now()
         }
     }
     // 待办倒计时也要跟着走：「还剩 3 小时」不能停在打开页面的那一刻
-    val nowMillis by produceState(initialValue = System.currentTimeMillis()) {
+    val nowMillis by produceState(initialValue = System.currentTimeMillis(), active) {
+        if (!active) return@produceState
+        value = System.currentTimeMillis()
         while (true) {
             kotlinx.coroutines.delay(60_000)
             value = System.currentTimeMillis()
         }
     }
-    val courseStatus = remember(nowClock, courses, settings) {
+    val courseStatus = remember(nowClock, courses, settings.hiddenCourses, today, termStart, settings.termWeeks, periodTimes) {
         computeCourseStatus(
             courses = courses,
             hidden = settings.hiddenCourses,
-            today = TermCalculator.today(),
+            today = today,
             now = nowClock,
             termStart = termStart,
             termWeeks = settings.termWeeks,
-            pts = settings.periodTimes(),
+            pts = periodTimes,
         )
     }
     val nextClassUi = courseStatus?.let {
@@ -347,7 +358,10 @@ fun ScheduleScreen(viewModel: MainViewModel, xuexitongModel: XuexitongViewModel)
                     )
             ) {
                 WeekAnimatedGrid(
-                    state = state,
+                    week = state.week,
+                    hiddenCourses = settings.hiddenCourses,
+                    periodTimes = periodTimes,
+                    showWeekend = settings.showWeekend,
                     courses = courses,
                     paletteMap = paletteMap,
                     termStart = termStart,
@@ -362,7 +376,7 @@ fun ScheduleScreen(viewModel: MainViewModel, xuexitongModel: XuexitongViewModel)
                             onGesture = a::onGesture,
                         )
                     },
-                    onCourseClick = { if (arrange == null) detailCourse = it },
+                    onCourseClick = onCourseClick,
                 )
             }
         }
@@ -371,7 +385,7 @@ fun ScheduleScreen(viewModel: MainViewModel, xuexitongModel: XuexitongViewModel)
         arrange?.let { a ->
             ArrangePanel(
                 state = a,
-                periodTimes = settings.periodTimes(),
+                periodTimes = periodTimes,
                 onCancel = { arrange = null },
                 onSave = {
                     a.build().forEach { viewModel.addCustomCourse(it) }
@@ -548,7 +562,7 @@ fun ScheduleScreen(viewModel: MainViewModel, xuexitongModel: XuexitongViewModel)
         SearchSheet(
             courses = courses,
             paletteMap = paletteMap,
-            periodTimes = settings.periodTimes(),
+            periodTimes = periodTimes,
             onDismiss = { showSearch = false },
             onPick = {
                 showSearch = false
@@ -571,7 +585,7 @@ fun ScheduleScreen(viewModel: MainViewModel, xuexitongModel: XuexitongViewModel)
         if (!noteEditorOpen && noteView == null) {
             CourseDetailSheet(
                 course = course,
-                periodTimes = settings.periodTimes(),
+                periodTimes = periodTimes,
                 notes = courseNotes,
                 onDismiss = { detailCourse = null },
                 onAddNote = {
@@ -624,7 +638,10 @@ fun ScheduleScreen(viewModel: MainViewModel, xuexitongModel: XuexitongViewModel)
 
 @Composable
 private fun WeekAnimatedGrid(
-    state: com.fengkao.timetable.ui.MainUiState,
+    week: Int,
+    hiddenCourses: Set<String>,
+    periodTimes: List<PeriodTime>,
+    showWeekend: Boolean,
     courses: List<CourseBlock>,
     paletteMap: Map<String, CoursePalette>,
     termStart: LocalDate,
@@ -632,9 +649,8 @@ private fun WeekAnimatedGrid(
     draft: GridDraft? = null,
     onCourseClick: (CourseBlock) -> Unit,
 ) {
-    val settings = state.settings
     AnimatedContent(
-        targetState = state.week,
+        targetState = week,
         transitionSpec = {
             val dir = if (targetState > initialState) 1 else -1
             val move = tween<IntOffset>(300, easing = FastOutSlowInEasing)
@@ -643,10 +659,12 @@ private fun WeekAnimatedGrid(
         },
         label = "weekSlide",
     ) { week ->
-        val ws = TermCalculator.weekStart(termStart, week)
-        val wc = courses.filter { it.coversWeek(week) && it.stableKey !in settings.hiddenCourses }
-        val we = ws.plusDays(6)
-        val dow = today.takeIf { !it.isBefore(ws) && !it.isAfter(we) }
+        val ws = remember(termStart, week) { TermCalculator.weekStart(termStart, week) }
+        val wc = remember(courses, week, hiddenCourses) {
+            courses.filter { it.coversWeek(week) && it.stableKey !in hiddenCourses }
+        }
+        val we = remember(ws) { ws.plusDays(6) }
+        val dow = remember(today, ws, we) { today.takeIf { !it.isBefore(ws) && !it.isAfter(we) } }
         val listScroll = rememberScrollState()
         SyncBarScrim(listScroll)
         // 排课时把草稿时段滚进视野：点「加时段」会挑一段最近的空闲时间（常在 9-11 节），
@@ -669,9 +687,9 @@ private fun WeekAnimatedGrid(
                 weekCourses = wc,
                 weekStart = ws,
                 today = dow,
-                periodTimes = settings.periodTimes(),
+                periodTimes = periodTimes,
                 paletteMap = paletteMap,
-                showWeekend = settings.showWeekend,
+                showWeekend = showWeekend,
                 draft = draft,
                 onCourseClick = onCourseClick,
             )

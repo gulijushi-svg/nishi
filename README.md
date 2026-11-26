@@ -10,7 +10,9 @@
 
 | 课程 | 服务 | 学习 |
 | :---: | :---: | :---: |
-| <img src="docs/screenshots/schedule.png" width="240" alt="课程表与下一节课提醒"> | 喝水 · 洗衣 · 电费 | 成绩查询 · 教务工具 |
+| <img src="docs/screenshots/schedule.png" width="240" alt="课程表与下一节课提醒"> | <img src="docs/screenshots/service.png" width="240" alt="喝水、洗衣与电费服务"> | <img src="docs/screenshots/learning.png" width="240" alt="成绩查询与教务学习工具"> |
+
+课程、服务、学习及深色课表截图均来自离线 Demo 的 Android 模拟器，使用虚构数据，不是真实用户设备截图。
 
 
 ## 功能

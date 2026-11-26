@@ -54,6 +54,7 @@ data class WashUiState(
     val detailLoading: Boolean = false,
     val selectedAddonIds: Set<Int> = emptySet(),
     val selectedAddonKeys: Set<String> = emptySet(),
+    val addonQuantities: Map<String, Int> = emptyMap(),
     val payingSkuId: Int? = null,
     val message: String? = null,
     val error: Boolean = false,
@@ -288,6 +289,7 @@ class WashViewModel(application: Application) : AndroidViewModel(application) {
                 addons = emptyList(),
                 selectedAddonIds = emptySet(),
                 selectedAddonKeys = emptySet(),
+                addonQuantities = emptyMap(),
                 message = null,
                 error = false,
             )
@@ -298,11 +300,21 @@ class WashViewModel(application: Application) : AndroidViewModel(application) {
                 val skus = withContext(Dispatchers.IO) { repository.goodsSkus(goodsId) }
                 val addons = withContext(Dispatchers.IO) {
                     runCatching {
-                        repository.fetchAddons(detail.shopId ?: detail.orgId.toString())
+                        repository.fetchAddons(goodsId)
                     }.getOrDefault(emptyList())
                 }
+                val addonGroups = addons.groupBy { it.name }
                 _state.update {
-                    it.copy(detail = detail, skus = skus, addons = addons, detailLoading = false)
+                    it.copy(
+                        detail = detail,
+                        skus = skus,
+                        addons = addons,
+                        selectedAddonKeys = addonGroups
+                            .filterValues { variants -> variants.any { it.checkbox } }
+                            .keys,
+                        addonQuantities = addonGroups.keys.associateWith { 0 },
+                        detailLoading = false,
+                    )
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -322,6 +334,7 @@ class WashViewModel(application: Application) : AndroidViewModel(application) {
                 detailLoading = false,
                 selectedAddonIds = emptySet(),
                 selectedAddonKeys = emptySet(),
+                addonQuantities = emptyMap(),
                 payingSkuId = null,
             )
         }
@@ -340,6 +353,15 @@ class WashViewModel(application: Application) : AndroidViewModel(application) {
             val selected = it.selectedAddonKeys.toMutableSet()
             if (!selected.add(key)) selected.remove(key)
             it.copy(selectedAddonKeys = selected)
+        }
+    }
+
+    /** 洗护用品按商品名合并；数量索引对应 1份/2份/3份 SKU。 */
+    fun setAddonQuantity(group: String, index: Int) {
+        _state.update {
+            val variants = it.addons.filter { addon -> addon.name == group }
+            val safe = index.coerceIn(0, (variants.size - 1).coerceAtLeast(0))
+            it.copy(addonQuantities = it.addonQuantities + (group to safe))
         }
     }
 
@@ -413,22 +435,37 @@ class WashViewModel(application: Application) : AndroidViewModel(application) {
                                 )
                             )
                         }
-                    _state.value.addons
-                        .filter { it.isConfigured && it.key in _state.value.selectedAddonKeys }
-                        .forEach { addon ->
-                            add(
-                                mapOf(
-                                    "amount" to "1",
-                                    "goodsId" to addon.goodsId,
-                                    "num" to "1",
-                                    "skuId" to addon.skuId,
-                                    "soldType" to "1",
+                    // 官方 Sku.attach 字段在部分学校接口里会缺省；缺省时按模式名兜底，
+                    // 桶自洁/单脱水不追加洗护用品，其余洗衣模式允许加购。
+                    val modeName = sku.name.orEmpty()
+                    val supportsAddons = sku.attach != 0 ||
+                        (modeName.isNotBlank() && !modeName.contains("桶自洁") && !modeName.contains("单脱水"))
+                    if (supportsAddons) {
+                        _state.value.selectedAddonKeys.forEach { group ->
+                            val variants = _state.value.addons
+                                .filter { it.name == group && it.isConfigured }
+                                .sortedBy { it.copyCount }
+                            val index = (_state.value.addonQuantities[group] ?: 0)
+                                .coerceIn(0, (variants.size - 1).coerceAtLeast(0))
+                            variants.getOrNull(index)?.let { addon ->
+                                add(
+                                    mapOf(
+                                        // 官方 AttachItem：amount 表示份数（1份/2份/3份），不是金额。
+                                        "amount" to addon.copyCount.toString(),
+                                        "goodsId" to addon.goodsId,
+                                        "num" to "1",
+                                        "skuId" to addon.skuId,
+                                        "soldType" to "1",
+                                    )
                                 )
-                            )
+                            }
                         }
+                    }
                 }
                 val trade = withContext(Dispatchers.IO) { repository.createTrade(promotions, items) }
+                // 官方返回有时只有 tradeNo，没有 orderId；两者都可作为后续 prePay 的订单号。
                 val orderId = trade.orderId?.takeIf { it.isNotBlank() }
+                    ?: trade.tradeNo?.takeIf { it.isNotBlank() }
                     ?: throw IOException("创建订单失败")
                 val prepay = withContext(Dispatchers.IO) { repository.prePay(orderId) }
                 val param = prepay.prepayParam?.takeIf { it.isNotBlank() }

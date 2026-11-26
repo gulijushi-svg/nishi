@@ -2,8 +2,6 @@ package com.fengkao.timetable.data.wash
 
 import android.content.Context
 import com.google.gson.Gson
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import okhttp3.OkHttpClient
 import retrofit2.HttpException
 import retrofit2.Retrofit
@@ -58,51 +56,14 @@ class WashRepository(context: Context) {
         api.goodsSkus(goodsId, token())
     }.orEmpty()
 
-    /** 读取店铺里的洗护用品加购商品（官方 App 的「请添加洗护用品」）。 */
-    suspend fun fetchAddons(shopId: String): List<WashAddon> {
-        if (shopId.isBlank()) return emptyList()
-        val root = call { api.shopGoods(shopId = shopId, token = token()) } ?: return emptyList()
-        val objects = mutableListOf<JsonObject>()
-        fun walk(element: JsonElement) {
-            when {
-                element.isJsonObject -> {
-                    val obj = element.asJsonObject
-                    objects += obj
-                    obj.entrySet().forEach { walk(it.value) }
-                }
-                element.isJsonArray -> element.asJsonArray.forEach { walk(it) }
-            }
-        }
-        walk(root)
-        val keywords = listOf("除菌液", "洗衣液", "消毒液", "洗护", "洗衣粉", "柔顺")
-        val result = mutableListOf<WashAddon>()
-        for (obj in objects) {
-            val name = obj.string("goodsName").ifBlank { obj.string("name") }
-            if (name.isBlank() || keywords.none { name.contains(it) }) continue
-            val goodsId = obj.string("goodsId").ifBlank { obj.string("id") }
-            if (goodsId.isBlank()) continue
-            var skuId = obj.string("skuId")
-            var price = obj.string("price").ifBlank { obj.string("goodsPrice") }
-            if (skuId.isBlank()) {
-                val sku = runCatching { goodsSkus(goodsId.toInt()).firstOrNull() }.getOrNull()
-                skuId = sku?.skuId?.toString().orEmpty()
-                if (price.isBlank()) price = sku?.price.orEmpty()
-            }
-            if (skuId.isNotBlank()) {
-                result += WashAddon(
-                    goodsId = goodsId,
-                    skuId = skuId,
-                    name = name,
-                    price = price,
-                    feature = obj.string("feature").ifBlank { "官方洗护用品" },
-                )
-            }
-        }
-        return result.distinctBy { it.goodsId to it.skuId }
+    /** 读取官方洗衣 SKU 页的「洗护用品」加购商品（goods/attachList/v3）。 */
+    suspend fun fetchAddons(goodsId: Int): List<WashAddon> {
+        if (goodsId <= 0) return emptyList()
+        return call { api.attachList(goodsId.toString(), token()) }
+            .orEmpty()
+            .filter { it.isConfigured }
+            .distinctBy { it.goodsId to it.skuId }
     }
-
-    private fun JsonObject.string(key: String): String =
-        get(key)?.takeIf { !it.isJsonNull }?.asString.orEmpty()
 
     suspend fun goodsScan(nqt: String): WashGoodsScan = must(
         call { api.goodsScan(nqt, token()) },

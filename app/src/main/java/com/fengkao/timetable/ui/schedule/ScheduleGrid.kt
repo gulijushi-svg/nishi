@@ -1,5 +1,6 @@
 package com.fengkao.timetable.ui.schedule
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,9 +22,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -96,6 +98,9 @@ fun ScheduleGrid(
     // 避免列数随周次忽宽忽窄、也避免开关看起来“失灵”。
     val shownDays = if (showWeekend) 1..7 else 1..5
     val maxPeriod = maxOf(8, weekCourses.maxOfOrNull { it.endPeriod } ?: 8)
+    val coursesByDay = remember(weekCourses, showWeekend) {
+        shownDays.associateWith { day -> weekCourses.filter { it.dayOfWeek == day } }
+    }
     val narrow = shownDays.last > 5
     val headerBg = if (IsDark) Color(0xFF1C1C20) else Color.White
     val weekendColor = BrandGreen
@@ -229,66 +234,70 @@ fun ScheduleGrid(
                     }
                 }
 
-                shownDays.forEach { day ->
-                    // 竖向网格线
-                    Box(
-                        Modifier
-                            .width(1.dp)
-                            .fillMaxHeight()
-                            .background(GridLine)
-                    )
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .background(GridBg)
-                    ) {
-                        // 横向网格线（底层）
-                        Column(Modifier.fillMaxSize()) {
-                            repeat(maxPeriod) {
-                                Box(Modifier.fillMaxWidth().height(RowHeight)) {
-                                    HorizontalDivider(thickness = 1.dp, color = GridLine)
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(GridBg)
+                ) {
+                    Canvas(Modifier.fillMaxSize()) {
+                        val rowHeight = RowHeight.toPx()
+                        val dayWidth = size.width / shownDays.count()
+                        val stroke = 1.dp.toPx()
+                        for (period in 0 until maxPeriod) {
+                            val y = period * rowHeight
+                            drawLine(GridLine, Offset(0f, y), Offset(size.width, y), strokeWidth = stroke)
+                        }
+                        for (column in 0 until shownDays.count()) {
+                            val x = column * dayWidth
+                            drawLine(GridLine, Offset(x, 0f), Offset(x, size.height), strokeWidth = stroke)
+                        }
+                    }
+                    Row(Modifier.fillMaxSize()) {
+                        shownDays.forEach { day ->
+                            Box(Modifier.weight(1f).fillMaxHeight()) {
+                                // 课程卡：位置与高度严格由节次决定
+                                coursesByDay[day].orEmpty().forEach { course ->
+                                    key(course.stableKey) {
+                                        val top = ((course.startPeriod - 1) * RowHeight.value).dp + 3.dp
+                                        val cardHeight =
+                                            ((course.endPeriod - course.startPeriod + 1) * RowHeight.value).dp - 6.dp
+                                        CourseCard(
+                                            course = course,
+                                            narrow = narrow,
+                                            paletteMap = paletteMap,
+                                            modifier = Modifier
+                                                .offset(y = top)
+                                                .height(cardHeight)
+                                                .padding(horizontal = 2.dp),
+                                            onClick = { onCourseClick(course) },
+                                        )
+                                    }
+                                }
+                                // 排课草稿：半透明幽灵卡，压在真课程上面才看得见冲突
+                                draft?.slots?.forEachIndexed { index, slot ->
+                                    if (slot.day != day) return@forEachIndexed
+                                    key(index) {
+                                        val top = ((slot.start - 1) * RowHeight.value).dp + 3.dp
+                                        val cardHeight =
+                                            ((slot.end - slot.start + 1) * RowHeight.value).dp - 6.dp
+                                        GhostCard(
+                                            title = draft.label.ifBlank { "新建课程" },
+                                            place = draft.place,
+                                            day = slot.day,
+                                            start = slot.start,
+                                            end = slot.end,
+                                            conflict = index in draft.conflictIndexes,
+                                            active = index == draft.activeIndex,
+                                            narrow = narrow,
+                                            modifier = Modifier
+                                                .offset(y = top)
+                                                .height(cardHeight)
+                                                .padding(horizontal = 2.dp),
+                                        )
+                                    }
                                 }
                             }
-                        }
-                        // 课程卡：位置与高度严格由节次决定
-                        weekCourses
-                            .filter { it.dayOfWeek == day }
-                            .forEach { course ->
-                                val top = ((course.startPeriod - 1) * RowHeight.value).dp + 3.dp
-                                val cardHeight =
-                                    ((course.endPeriod - course.startPeriod + 1) * RowHeight.value).dp - 6.dp
-                                CourseCard(
-                                    course = course,
-                                    narrow = narrow,
-                                    paletteMap = paletteMap,
-                                    modifier = Modifier
-                                        .offset(y = top)
-                                        .height(cardHeight)
-                                        .padding(horizontal = 2.dp),
-                                    onClick = { onCourseClick(course) },
-                                )
-                            }
-                        // 排课草稿：半透明幽灵卡，压在真课程上面才看得见冲突
-                        draft?.slots?.forEachIndexed { index, slot ->
-                            if (slot.day != day) return@forEachIndexed
-                            val top = ((slot.start - 1) * RowHeight.value).dp + 3.dp
-                            val cardHeight =
-                                ((slot.end - slot.start + 1) * RowHeight.value).dp - 6.dp
-                            GhostCard(
-                                title = draft.label.ifBlank { "新建课程" },
-                                place = draft.place,
-                                day = slot.day,
-                                start = slot.start,
-                                end = slot.end,
-                                conflict = index in draft.conflictIndexes,
-                                active = index == draft.activeIndex,
-                                narrow = narrow,
-                                modifier = Modifier
-                                    .offset(y = top)
-                                    .height(cardHeight)
-                                    .padding(horizontal = 2.dp),
-                            )
                         }
                     }
                 }

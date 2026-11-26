@@ -1,5 +1,6 @@
 package com.fengkao.timetable.data.electricity
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -34,6 +35,7 @@ object ElectricityNotifier {
         manager.createNotificationChannel(channel)
     }
 
+    @SuppressLint("MissingPermission")
     fun notifyLow(context: Context, rooms: List<ElectricityRoom>): Boolean {
         if (rooms.isEmpty() || !NoteReminders.canNotify(context)) return false
         ensureChannel(context)

@@ -218,7 +218,7 @@ private fun WashHome(state: WashUiState, model: WashViewModel) {
             Text("扫描机身二维码即可查看设备并开始洗衣。", color = InkMid, fontSize = 13.sp)
         }
     } else {
-        val now = rememberClock()
+        val now = rememberClock(LocalPageActive.current)
         state.devices.forEach { device ->
             WashDeviceCard(device, state.running[device.goodsId], now, state.busy) {
                 model.openDevice(device.goodsId)
@@ -379,14 +379,25 @@ private fun WashDetailPage(model: WashViewModel, state: WashUiState, embedded: B
                 val modes = state.skus.filterNot { it.isAddon }
                 if (state.addons.isNotEmpty()) {
                     Text("选配洗涤用品", color = InkDark, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    state.addons.forEach { addon ->
-                        WashOfficialAddonCard(
-                            addon = addon,
-                            checked = addon.key in state.selectedAddonKeys,
-                            enabled = state.payingSkuId == null && !state.busy,
-                            onToggle = { model.toggleAddonKey(addon.key) },
-                        )
-                    }
+                    state.addons.groupBy { it.name }
+                        .toList()
+                        .sortedBy { it.first }
+                        .forEach { (group, variants) ->
+                            val sorted = variants.sortedBy { it.copyCount }
+                            val index = (state.addonQuantities[group] ?: 0)
+                                .coerceIn(0, (sorted.size - 1).coerceAtLeast(0))
+                            val current = sorted[index]
+                            WashOfficialAddonCard(
+                                addon = current,
+                                checked = group in state.selectedAddonKeys,
+                                quantity = index + 1,
+                                maxQuantity = sorted.size,
+                                enabled = state.payingSkuId == null && !state.busy,
+                                onToggle = { model.toggleAddonKey(group) },
+                                onMinus = { model.setAddonQuantity(group, index - 1) },
+                                onPlus = { model.setAddonQuantity(group, index + 1) },
+                            )
+                        }
                 } else if (skuAddons.isNotEmpty()) {
                     Text("选配洗涤用品", color = InkDark, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     skuAddons.forEach { sku ->
@@ -459,8 +470,12 @@ private fun WashAddonCard(
 private fun WashOfficialAddonCard(
     addon: com.fengkao.timetable.data.wash.WashAddon,
     checked: Boolean,
+    quantity: Int,
+    maxQuantity: Int,
     enabled: Boolean,
     onToggle: () -> Unit,
+    onMinus: () -> Unit,
+    onPlus: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onToggle),
@@ -470,7 +485,7 @@ private fun WashOfficialAddonCard(
         shape = RoundedCornerShape(16.dp),
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -482,10 +497,61 @@ private fun WashOfficialAddonCard(
             )
             Column(Modifier.weight(1f)) {
                 Text(addon.name.ifBlank { "洗护用品" }, color = InkDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Text(addon.feature.ifBlank { "官方洗护用品" }, color = InkGray, fontSize = 11.sp)
+                Text(
+                    addon.description.ifBlank { addon.feature }.ifBlank { "官方洗护用品" },
+                    color = InkGray,
+                    fontSize = 11.sp,
+                )
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "￥${addon.price.ifBlank { "--" }}",
+                        color = InkDark,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    AddonQuantityButton(
+                        icon = Icons.Outlined.Remove,
+                        enabled = enabled && checked && quantity > 1,
+                        onClick = onMinus,
+                    )
+                    Text(
+                        "$quantity",
+                        color = InkDark,
+                        fontSize = 14.sp,
+                        modifier = Modifier.width(26.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                    AddonQuantityButton(
+                        icon = Icons.Outlined.Add,
+                        enabled = enabled && checked && quantity < maxQuantity,
+                        onClick = onPlus,
+                    )
+                }
             }
-            Text("￥${addon.price.ifBlank { "--" }}", color = InkDark, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
+    }
+}
+
+@Composable
+private fun AddonQuantityButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    // 不用 IconButton：Material3 默认 48dp 最小触控区会把卡片撑成大块空白。
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (enabled) CardWhite else Color.Transparent)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, null, Modifier.size(15.dp), tint = if (enabled) InkDark else InkGray)
     }
 }
 
@@ -573,9 +639,11 @@ fun WashLogin(
 }
 
 @Composable
-private fun rememberClock(): Long {
+private fun rememberClock(active: Boolean): Long {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(active) {
+        if (!active) return@LaunchedEffect
+        now = System.currentTimeMillis()
         while (true) {
             delay(1_000)
             now = System.currentTimeMillis()

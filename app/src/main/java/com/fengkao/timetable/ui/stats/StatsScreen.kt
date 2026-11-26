@@ -65,8 +65,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.text.TextStyle
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fengkao.timetable.ui.MainViewModel
+import com.fengkao.timetable.ui.collectMainPageState
 import com.fengkao.timetable.ui.theme.InkDark
 import com.fengkao.timetable.ui.theme.IsDark
 import com.fengkao.timetable.data.model.BusyBlock
@@ -180,7 +180,7 @@ private val typeDeep: (String) -> Color = { t -> deepOf(typeColor(t)) }
 /** 统计区：嵌入「发现」页（课程异动置顶之下），滚动与底栏留白由宿主页负责 */
 @Composable
 fun StatsContent(viewModel: MainViewModel) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state = viewModel.collectMainPageState()
     val schedule = state.schedule
     val bundle = remember(schedule, state.week, state.settings.termWeeks, state.settings) {
         if (schedule == null) null

@@ -29,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel as composeViewModel
 import com.fengkao.timetable.SyncScheduler
 import com.fengkao.timetable.data.TermCalculator
 import com.fengkao.timetable.ui.MainViewModel
+import com.fengkao.timetable.ui.collectMainPageState
 import com.fengkao.timetable.ui.discover.DiscoverScreen
 import com.fengkao.timetable.ui.wash.WashViewModel
 import com.fengkao.timetable.ui.water.WaterViewModel
@@ -44,7 +45,7 @@ fun ProfileScreen(
     washModel: WashViewModel,
     xuexitongModel: XuexitongViewModel,
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state = viewModel.collectMainPageState()
     val water by waterModel.state.collectAsStateWithLifecycle()
     val wash by washModel.state.collectAsStateWithLifecycle()
     val xuexitong by xuexitongModel.state.collectAsStateWithLifecycle()
@@ -97,6 +98,7 @@ fun ProfileScreen(
                         SettingsItem("同步与数据", Icons.Outlined.Sync, "教务同步、自动更新") { go(ProfilePage.SYNC) }
                     }
                     SettingsSection("校园服务") { SettingsItem("校园服务账户", Icons.Outlined.WaterDrop, "教务 · 喝水 · 洗衣 · 学习通") { go(ProfilePage.SERVICES) } }
+
                     SettingsSection("其他") {
                         SettingsItem("应用设置", Icons.Outlined.Settings, divider = true) { go(ProfilePage.APP) }
                         SettingsItem("关于", Icons.Outlined.Info) { go(ProfilePage.ABOUT) }

@@ -32,10 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fengkao.timetable.data.model.ChangeType
 import com.fengkao.timetable.data.model.CourseChange
 import com.fengkao.timetable.ui.MainViewModel
+import com.fengkao.timetable.ui.collectMainPageState
 import com.fengkao.timetable.ui.stats.StatsContent
 import com.fengkao.timetable.ui.theme.InkDark
 import com.fengkao.timetable.ui.theme.IsDark
@@ -65,7 +65,7 @@ private val RED_DEEP: Color get() = if (IsDark) Color(0xFFF19994) else Color(0xF
  */
 @Composable
 fun DiscoverScreen(viewModel: MainViewModel, onBack: (() -> Unit)? = null) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state = viewModel.collectMainPageState()
     val changes = state.courseChanges
     val loaded = state.courseChangesLoaded
 

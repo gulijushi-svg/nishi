@@ -63,9 +63,15 @@ data class WashAddon(
     val name: String = "",
     val price: String = "",
     val feature: String = "",
+    val description: String = "",
+    val copies: Int = 1,
+    val checkbox: Boolean = true,
 ) {
     val key: String get() = "$goodsId:$skuId"
     val isConfigured: Boolean get() = goodsId.isNotBlank() && skuId.isNotBlank()
+    val copyCount: Int
+        get() = Regex("(\\d+)\\s*份").find(description)?.groupValues?.getOrNull(1)?.toIntOrNull()
+            ?: copies.coerceAtLeast(1)
 }
 
 data class WashSku(
@@ -77,6 +83,9 @@ data class WashSku(
     val discountPrice: String? = null,
     val unit: String? = null,
     val stockState: Int = 0,
+    /** 官方 Sku.attach：1 表示该模式支持洗护用品加购。 */
+    val attach: Int = 0,
+    val hasAttachData: Boolean = false,
 ) {
     /** 洗衣模式之外的洗涤用品（洗衣液、消毒液等）。 */
     val isAddon: Boolean

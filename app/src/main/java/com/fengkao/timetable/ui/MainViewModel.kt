@@ -1,6 +1,9 @@
 package com.fengkao.timetable.ui
 
 import android.app.Application
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.lifecycle.AndroidViewModel
@@ -23,8 +26,10 @@ import com.fengkao.timetable.widget.WidgetUpdater
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +40,8 @@ data class MainUiState(
     val bootstrapped: Boolean = false,
     val loggedIn: Boolean = false,
     val selectedTab: Int = 0,
+    /** 已经打开过的首页 Tab；保活已访问页面，同时避免冷启动初始化全部服务。 */
+    val visitedTabs: Set<Int> = setOf(0),
     val settings: AppSettings = AppSettings(),
     /** 当前展示的学期 */
     val term: TermSpec? = null,
@@ -76,6 +83,19 @@ data class MainUiState(
     /** 一次性提示是否为错误色 */
     val updateHintError: Boolean = false,
 )
+
+/** 首页保活期间，Tab 切换不应让已经保留的页面再整体重组一次。 */
+@Composable
+fun MainViewModel.collectMainPageState(): MainUiState {
+    val flow = remember(this) {
+        state.map { it.copy(selectedTab = 0, visitedTabs = emptySet()) }
+            .distinctUntilChanged()
+    }
+    val initial = remember(this) {
+        state.value.copy(selectedTab = 0, visitedTabs = emptySet())
+    }
+    return flow.collectAsStateWithLifecycle(initialValue = initial).value
+}
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -517,7 +537,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ------------------------------------------------------------ UI 状态操作
 
-    fun setTab(index: Int) = _state.update { it.copy(selectedTab = index.coerceIn(0, 3)) }
+    fun setTab(index: Int) = _state.update {
+        val tab = index.coerceIn(0, 3)
+        it.copy(selectedTab = tab, visitedTabs = it.visitedTabs + tab)
+    }
 
     /** 桌面 Widget 点击课程 → 打开详情 */
     fun openCourseFromWidget(key: String) =
@@ -527,13 +550,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(widgetCourseKey = null) }
 
     /** 系统通知点击 → 首页打开学习通通知中心 */
-    fun requestOpenNotices() = _state.update { it.copy(selectedTab = 0, openNoticesRequested = true) }
+    fun requestOpenNotices() = _state.update {
+        it.copy(selectedTab = 0, visitedTabs = it.visitedTabs + 0, openNoticesRequested = true)
+    }
 
     fun consumeOpenNotices() = _state.update { it.copy(openNoticesRequested = false) }
 
     /** 笔记提醒通知点击 → 首页打开该课程详情 */
     fun openNotesForCourse(course: String) =
-        _state.update { it.copy(selectedTab = 0, noteCourseRequested = course) }
+        _state.update {
+            it.copy(selectedTab = 0, visitedTabs = it.visitedTabs + 0, noteCourseRequested = course)
+        }
 
     fun consumeNoteCourseRequest() =
         _state.update { it.copy(noteCourseRequested = null) }

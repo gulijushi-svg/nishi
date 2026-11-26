@@ -1,12 +1,7 @@
 package com.fengkao.timetable.ui.service
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -48,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fengkao.timetable.ui.electricity.ElectricityScreen
 import com.fengkao.timetable.ui.electricity.ElectricityViewModel
 import com.fengkao.timetable.ui.glass.GlassElevation
@@ -80,7 +76,6 @@ object ServiceSelection {
 fun ServiceScreen(
     waterModel: WaterViewModel,
     washModel: WashViewModel,
-    electricityModel: ElectricityViewModel,
 ) {
     val backdrop = rememberLayerBackdrop()
     Box(Modifier.fillMaxSize()) {
@@ -102,15 +97,14 @@ fun ServiceScreen(
                 modifier = Modifier.padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 10.dp),
             )
             Box(Modifier.weight(1f)) {
-                AnimatedContent(
-                    targetState = ServiceSelection.index,
-                    transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(160)) },
-                    label = "service",
-                ) { index ->
-                    when (index) {
-                        0 -> WaterScreen(waterModel, embedded = true)
-                        1 -> WashScreen(washModel, embedded = true)
-                        else -> ElectricityScreen(electricityModel)
+                // 服务子页也直接切换，避免同时组合两个页面；切换栏自身仍有弹簧位移动画。
+                when (ServiceSelection.index) {
+                    0 -> WaterScreen(waterModel, embedded = true)
+                    1 -> WashScreen(washModel, embedded = true)
+                    else -> {
+                        // 电费页只在用户真正打开时创建 ViewModel，避免冷启动就发网络请求。
+                        val electricityModel: ElectricityViewModel = viewModel()
+                        ElectricityScreen(electricityModel)
                     }
                 }
             }
