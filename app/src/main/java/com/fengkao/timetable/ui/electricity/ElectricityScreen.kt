@@ -68,6 +68,7 @@ fun ElectricityScreen(model: ElectricityViewModel, modifier: Modifier = Modifier
     val state by model.state.collectAsStateWithLifecycle()
     var thresholdDialog by rememberSaveable { mutableStateOf(false) }
     var accountDialogDismissed by rememberSaveable { mutableStateOf(false) }
+    var showBindDialog by rememberSaveable { mutableStateOf(false) }
 
     PullToRefreshBox(
         isRefreshing = state.busy && !state.recoveringAccount,
@@ -88,6 +89,9 @@ fun ElectricityScreen(model: ElectricityViewModel, modifier: Modifier = Modifier
                             color = InkGray,
                             fontSize = 12.sp,
                         )
+                    }
+                    TextButton(onClick = { showBindDialog = true }, enabled = !state.busy) {
+                        Text("绑定房间")
                     }
                     IconButton(onClick = model::refresh, enabled = !state.busy) {
                         if (state.busy) {
@@ -149,6 +153,17 @@ fun ElectricityScreen(model: ElectricityViewModel, modifier: Modifier = Modifier
                 )
             }
         }
+    }
+
+    if (showBindDialog) {
+        ElectricityBindDialog(
+            account = state.account,
+            onDismiss = { showBindDialog = false },
+            onBound = {
+                showBindDialog = false
+                model.refresh()
+            },
+        )
     }
 
     if (thresholdDialog) {

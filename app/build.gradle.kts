@@ -30,14 +30,15 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 45
-versionName = "1.0.0"
+versionName = "1.0.1"
         buildConfigField("String", "WATER_API_GATEWAY", waterConfig("API_GATEWAY"))
         buildConfigField("String", "WATER_API_CID", waterConfig("API_CID"))
+        manifestPlaceholders["appName"] = "泥石"
 
         ndk {
             // debug 保留 x86_64 以便跑模拟器；release 只发 arm64-v8a 真机包。
             // （不能和 splits.abi 同时配置，AGP 会直接报冲突，所以这里按 task 名动态选。）
-            val isRelease = gradle.startParameter.taskNames.any { it.contains("Release") }
+            val isRelease = gradle.startParameter.taskNames.any { it.contains("Release") || it.contains("Qa") }
             abiFilters.addAll(
                 if (isRelease) listOf("arm64-v8a")
                 else listOf("arm64-v8a", "x86_64")
@@ -85,6 +86,14 @@ versionName = "1.0.0"
             matchingFallbacks += listOf("debug")
             buildConfigField("String", "WATER_API_GATEWAY", "\"\"")
             buildConfigField("String", "WATER_API_CID", "\"\"")
+        }
+        create("qa") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".testrepo"
+            versionNameSuffix = "-test"
+            manifestPlaceholders["appName"] = "泥石 Test"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
         }
     }
 

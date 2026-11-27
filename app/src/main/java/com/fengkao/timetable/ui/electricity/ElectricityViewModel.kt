@@ -25,6 +25,7 @@ data class ElectricityUiState(
     val message: String? = null,
     val error: Boolean = false,
     val offline: Boolean = false,
+    val account: String = "",
 )
 
 class ElectricityViewModel(application: Application) : AndroidViewModel(application) {
@@ -49,9 +50,11 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
                     account = ElectricityAccount.normalize(container.gradeRepository.fetchStudentIdWithSession().orEmpty())
                     if (account.isNotBlank()) container.settings.setAccount(account)
                 }
+                _state.update { it.copy(account = account) }
                 if (account.isBlank()) {
                     _state.update {
                         it.copy(
+                            account = "",
                             busy = false,
                             recoveringAccount = false,
                             needsAccount = true,
@@ -85,14 +88,14 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
                         clearRooms = true,
                     )
                     ElectricityResult.Unavailable -> updateFailure(
-                        "完美校园接口暂时不可用，稍后再试",
+                        null,
                         clearRooms = false,
                     )
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-                updateFailure("完美校园接口暂时不可用，稍后再试", clearRooms = false)
+                updateFailure(null, clearRooms = false)
             }
         }
     }
@@ -132,7 +135,7 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    private fun updateFailure(message: String, clearRooms: Boolean) {
+    private fun updateFailure(message: String?, clearRooms: Boolean) {
         _state.update {
             it.copy(
                 rooms = if (clearRooms) emptyList() else it.rooms,

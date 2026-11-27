@@ -50,4 +50,35 @@ class ElectricityRepository(
             ElectricityResult.Unavailable
         }
     }
+
+    suspend fun zones(account: String): List<ElectricityArea> = withContext(Dispatchers.IO) {
+        runCatching { ElectricityBindingParser.parseAreas(api.zones(account)) }.getOrDefault(emptyList())
+    }
+
+    suspend fun builds(account: String, zoneId: Int): List<ElectricityArea> = withContext(Dispatchers.IO) {
+        runCatching { ElectricityBindingParser.parseAreas(api.builds(account, zoneId)) }.getOrDefault(emptyList())
+    }
+
+    suspend fun floors(account: String, buildId: Int): List<ElectricityArea> = withContext(Dispatchers.IO) {
+        runCatching { ElectricityBindingParser.parseAreas(api.floors(account, buildId)) }.getOrDefault(emptyList())
+    }
+
+    suspend fun rooms(account: String, floorId: Int): List<ElectricityArea> = withContext(Dispatchers.IO) {
+        runCatching { ElectricityBindingParser.parseAreas(api.rooms(account, floorId)) }.getOrDefault(emptyList())
+    }
+
+    suspend fun bindRoom(account: String, zoneId: Int, buildId: Int, floorId: Int, roomNum: Int): ElectricityBindOutcome =
+        withContext(Dispatchers.IO) {
+            try {
+                ElectricityBindingParser.parseBind(api.bindRoom(account, zoneId, buildId, floorId, roomNum))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                ElectricityBindOutcome.Unavailable
+            }
+        }
+
+    suspend fun roomByAccount(account: String, accountNum: String): ElectricityArea? = withContext(Dispatchers.IO) {
+        runCatching { ElectricityBindingParser.parseRoomByAccount(api.roomByAccount(account, accountNum)) }.getOrNull()
+    }
 }
