@@ -13,6 +13,11 @@ internal enum class ServiceKind {
         Drinking -> BrandGreen
         Laundry -> Color(0xFF2F6F9F)
     }
+    /** 按压态：action 同色加深约两成。灰色在本界面表示「不可用」，不用于按压反馈。 */
+    val actionPressed: Color get() = when (this) {
+        Drinking -> Color(0xFF123B73)
+        Laundry -> Color(0xFF26597F)
+    }
     val ink: Color get() = if (!IsDark) action else when (this) {
         Drinking -> Color(0xFFA8CFFF)
         Laundry -> Color(0xFF9CC9EA)

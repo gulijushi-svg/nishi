@@ -1,6 +1,8 @@
 package com.fengkao.timetable.ui.water
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -8,6 +10,8 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,9 +72,16 @@ internal fun ServiceDeviceSummary(name: String?, icon: ImageVector, kind: Servic
 @Composable
 internal fun ServiceActionButton(label: String, icon: ImageVector, enabled: Boolean, onClick: () -> Unit,
     kind: ServiceKind = ServiceKind.Drinking, busy: Boolean = false) {
-    Button(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth().height(54.dp),
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    // 颜色只表达「可用/按压」：可用时恒为品牌色（busy 也不变色，只换转圈图标），
+    // 按压时同色加深；灰色只留给 Material 默认的禁用态（真的不可用时）。
+    Button(onClick = onClick, enabled = enabled, interactionSource = interactionSource,
+        modifier = Modifier.fillMaxWidth().height(54.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = kind.action, contentColor = androidx.compose.ui.graphics.Color.White)) {
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (pressed) kind.actionPressed else kind.action,
+            contentColor = androidx.compose.ui.graphics.Color.White)) {
         if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = LocalContentColor.current)
         else Icon(icon, null, Modifier.size(22.dp))
         Spacer(Modifier.width(8.dp))

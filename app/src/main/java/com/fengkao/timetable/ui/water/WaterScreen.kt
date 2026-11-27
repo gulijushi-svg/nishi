@@ -65,7 +65,9 @@ private fun WaterScreenContent(model: WaterViewModel, embedded: Boolean) {
             ServiceDeviceCard(s.device?.name, Icons.Outlined.LocalDrink,
                 when { s.busy -> "正在更新设备…"; s.refreshFailed -> "设备更新失败"; s.device == null -> "扫描饮水机二维码，添加第一台设备"; else -> "" },
                 s.busy, if (s.startSeconds > 0) "已启动 · ${s.startSeconds}s" else "启动饮水设备",
-                s.device != null && !s.busy && s.startSeconds == 0,
+                // 不把 busy 放进 enabled：busy 期间变灰正是进页闪烁的来源。
+                // 重复点击由 ViewModel 的 runAction 互斥与启动冷却兜底拦截。
+                s.device != null && s.startSeconds == 0,
                 "启动后，在设备上选择水温并接水", model::start)
             WaterBindingActions(s, model, { requestScan() }) { manual = true }
         }
