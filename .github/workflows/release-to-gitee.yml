@@ -7,7 +7,12 @@ name: Release to Gitee
 on:
   release:
     types: [published]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to sync
+        required: true
+        default: v1.0.0
 
 jobs:
   sync-release:
@@ -15,11 +20,11 @@ jobs:
     env:
       GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
       GITEE_API: https://gitee.com/api/v5/repos/gulijushi/nishi
-      TAG: ${{ github.event.release.tag_name }}
-      RELEASE_NAME: ${{ github.event.release.name }}
-      RELEASE_BODY: ${{ github.event.release.body }}
-      IS_PRERELEASE: ${{ github.event.release.prerelease }}
-      TARGET: ${{ github.event.release.target_commitish }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      RELEASE_NAME: ${{ github.event.release.name || format('泥石 {0}', inputs.tag) }}
+      RELEASE_BODY: ${{ github.event.release.body || '' }}
+      IS_PRERELEASE: ${{ github.event.release.prerelease || false }}
+      TARGET: ${{ github.event.release.target_commitish || 'main' }}
     steps:
       - name: Download GitHub release assets
         env:
