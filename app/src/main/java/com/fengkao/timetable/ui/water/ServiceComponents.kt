@@ -43,30 +43,30 @@ internal fun ServiceDeviceCard(name: String?, icon: ImageVector, status: String,
 
 @Composable
 internal fun ServiceDeviceSummary(name: String?, icon: ImageVector, kind: ServiceKind = ServiceKind.Drinking) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Box(Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(kind.soft),
-            contentAlignment = Alignment.Center) {
-            Icon(icon, null, Modifier.size(32.dp), tint = kind.ink)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(kind.soft),
+                contentAlignment = Alignment.Center) {
+                Icon(icon, null, Modifier.size(32.dp), tint = kind.ink)
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    when (kind) {
+                        ServiceKind.Drinking -> "校园饮水机"
+                        ServiceKind.Laundry -> "自助洗衣机"
+                    },
+                    color = InkMid, fontSize = 14.sp,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    name ?: when (kind) {
+                        ServiceKind.Drinking -> "还未绑定饮水机"
+                        ServiceKind.Laundry -> "扫码选择洗衣机"
+                    },
+                    fontSize = 21.sp, fontWeight = FontWeight.Bold, color = InkDark,
+                )
+            }
         }
-        Column(Modifier.weight(1f)) {
-            Text(
-                when (kind) {
-                    ServiceKind.Drinking -> "校园饮水机"
-                    ServiceKind.Laundry -> "自助洗衣机"
-                },
-                color = InkMid, fontSize = 14.sp,
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                name ?: when (kind) {
-                    ServiceKind.Drinking -> "还未绑定饮水机"
-                    ServiceKind.Laundry -> "扫码选择洗衣机"
-                },
-                fontSize = 21.sp, fontWeight = FontWeight.Bold, color = InkDark,
-            )
-        }
-    }
 }
 
 @Composable
