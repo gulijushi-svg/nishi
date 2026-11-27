@@ -40,7 +40,7 @@ jobs:
           release_id=$(curl -s "$GITEE_API/releases/tags/$TAG?access_token=$GITEE_TOKEN" \
             | python3 -c "import sys, json; d = json.load(sys.stdin); print(d.get('id', ''))" 2>/dev/null || echo "")
           if [ -z "$release_id" ]; then
-            release_id=$(curl -s -X POST "$GITEE_API/releases" \
+            release_id=$(curl --fail --show-error --connect-timeout 20 --max-time 900 --retry 3 --retry-all-errors -X POST "$GITEE_API/releases" \
               -d "access_token=$GITEE_TOKEN" \
               --data-urlencode "tag_name=$TAG" \
               --data-urlencode "name=${RELEASE_NAME:-$TAG}" \
@@ -67,7 +67,7 @@ jobs:
           fi
           for f in "${files[@]}"; do
             echo "上传 $f"
-            curl -s -X POST "$GITEE_API/releases/${{ steps.gitee_release.outputs.release_id }}/attach_files" \
+            curl --fail --show-error --connect-timeout 20 --max-time 900 --retry 3 --retry-all-errors -X POST "$GITEE_API/releases/${{ steps.gitee_release.outputs.release_id }}/attach_files" \
               -F "access_token=$GITEE_TOKEN" \
               -F "file=@$f" > /dev/null
           done
