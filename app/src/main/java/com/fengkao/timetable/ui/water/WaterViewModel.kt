@@ -64,7 +64,24 @@ class WaterViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun enter() { if (token.isNotBlank()) refresh() }
+    /**
+     * 进页静默刷新：只同步设备列表，不走 runAction——不置 busy、不抢操作锁。
+     * 若走 busy，进页瞬间启动按钮会被禁用变灰、图标换成转圈，刷新完再恢复，
+     * 形成肉眼可见的闪烁；状态行的「正在更新设备…」忽隐忽现还会挤动布局。
+     * 失败只记 refreshFailed（页面有手动重试入口），不在进页时弹消息。
+     */
+    fun enter() {
+        if (token.isBlank() || _state.value.busy) return
+        viewModelScope.launch {
+            try { refreshDevices() }
+            catch (e: CancellationException) { throw e }
+            catch (e: WaterSessionExpired) {
+                store.expire(); token = ""
+                _state.update { it.copy(loggedIn = false, captcha = null, graphCode = "", smsCode = "") }
+            }
+            catch (e: Exception) { /* refreshFailed 已由 refreshDevices 记录 */ }
+        }
+    }
     fun phone(value: String) {
         captchaKey = ""
         smsPhone = ""
