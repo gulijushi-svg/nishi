@@ -28,6 +28,8 @@ const val DEFAULT_BASE_URL = "https://jwgl.zznu.edu.cn"
 
 data class AppSettings(
     val account: String = "",
+    /** 电费独立学号；教务未登录时使用 */
+    val electricityAccount: String = "",
     val passwordEnc: String = "",
     val baseUrl: String = DEFAULT_BASE_URL,
     val rememberPassword: Boolean = true,
@@ -102,6 +104,7 @@ class SettingsStore(private val context: Context) {
 
     private object Keys {
         val account = stringPreferencesKey("account")
+        val electricityAccount = stringPreferencesKey("electricity_account")
         val passwordEnc = stringPreferencesKey("password_enc")
         val baseUrl = stringPreferencesKey("base_url")
         val rememberPassword = booleanPreferencesKey("remember_password")
@@ -138,6 +141,7 @@ class SettingsStore(private val context: Context) {
     val flow: Flow<AppSettings> = context.dataStore.data.map { p ->
         AppSettings(
             account = p[Keys.account].orEmpty(),
+            electricityAccount = p[Keys.electricityAccount].orEmpty(),
             passwordEnc = p[Keys.passwordEnc].orEmpty(),
             // 旧版本安装包可能把梧州学院地址写进了 DataStore，升级后自动迁移到郑州师范学院。
             baseUrl = p[Keys.baseUrl]
@@ -241,6 +245,9 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setBaseUrl(value: String) = context.dataStore.edit { it[Keys.baseUrl] = value }
     suspend fun setAccount(value: String) = context.dataStore.edit { it[Keys.account] = value.trim() }
+    suspend fun setElectricityAccount(value: String) = context.dataStore.edit {
+        it[Keys.electricityAccount] = value.trim()
+    }
     suspend fun academicCookies(): String? = context.dataStore.data.first()[Keys.academicCookiesEnc]
     suspend fun saveAcademicCookies(encrypted: String) = context.dataStore.edit {
         it[Keys.academicCookiesEnc] = encrypted

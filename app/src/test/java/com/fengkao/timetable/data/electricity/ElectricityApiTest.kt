@@ -3,7 +3,6 @@ package com.fengkao.timetable.data.electricity
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -42,14 +41,13 @@ class ElectricityApiTest {
 
         val request = server.takeRequest()
         assertEquals("POST", request.method)
-        assertEquals("/smartWaterAndElectricityService/SWAEServlet", request.path)
+        assertEquals("/smartWaterAndElectricityService/SWAEEncryptServlet", request.path)
         assertTrue(request.getHeader("Content-Type")!!.startsWith("application/x-www-form-urlencoded"))
         val form = formBody(request.body.readUtf8())
         assertEquals("getbindroom", form["method"])
-        assertEquals(SCHOOL_CODE_ZZNU, form["customercode"])
-        val param = JSONObject(form.getValue("param"))
-        assertEquals("getbindroom", param.getString("cmd"))
-        assertEquals("20260001", param.getString("account"))
+        assertTrue(form["encryptData"].orEmpty().isNotBlank())
+        assertTrue(form["randomStr"].orEmpty().isNotBlank())
+        assertTrue(form["timestamp"].orEmpty().isNotBlank())
     }
 
     @Test

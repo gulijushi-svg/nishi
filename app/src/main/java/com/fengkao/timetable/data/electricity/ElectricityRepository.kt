@@ -78,6 +78,17 @@ class ElectricityRepository(
             }
         }
 
+    suspend fun unbindRoom(account: String, roomVerify: String): ElectricityBindOutcome =
+        withContext(Dispatchers.IO) {
+            try {
+                ElectricityBindingParser.parseBind(api.unbindRoom(account, roomVerify))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                ElectricityBindOutcome.Unavailable
+            }
+        }
+
     suspend fun roomByAccount(account: String, accountNum: String): ElectricityArea? = withContext(Dispatchers.IO) {
         runCatching { ElectricityBindingParser.parseRoomByAccount(api.roomByAccount(account, accountNum)) }.getOrNull()
     }

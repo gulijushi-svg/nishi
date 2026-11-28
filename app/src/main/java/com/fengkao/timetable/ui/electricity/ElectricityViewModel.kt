@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.fengkao.timetable.TimetableApp
 import com.fengkao.timetable.data.electricity.ElectricityAccount
+import com.fengkao.timetable.data.electricity.ElectricityBindOutcome
 import com.fengkao.timetable.data.electricity.ElectricityResult
 import com.fengkao.timetable.data.electricity.ElectricityRoom
 import kotlinx.coroutines.CancellationException
@@ -43,12 +44,17 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 val settings = container.settings.first()
-                var account = ElectricityAccount.normalize(settings.account)
+                var account = ElectricityAccount.normalize(settings.electricityAccount)
+                if (account.isBlank()) {
+                    account = ElectricityAccount.normalize(settings.account)
+                }
                 _state.update { it.copy(threshold = settings.electricityThreshold) }
                 if (account.isBlank()) {
                     _state.update { it.copy(recoveringAccount = true) }
                     account = ElectricityAccount.normalize(container.gradeRepository.fetchStudentIdWithSession().orEmpty())
-                    if (account.isNotBlank()) container.settings.setAccount(account)
+                }
+                if (account.isNotBlank()) {
+                    container.settings.setElectricityAccount(account)
                 }
                 _state.update { it.copy(account = account) }
                 if (account.isBlank()) {
@@ -58,8 +64,8 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
                             busy = false,
                             recoveringAccount = false,
                             needsAccount = true,
-                            message = "未找到已保存的教务账号，请补入学号",
-                            error = true,
+                            message = "教务系统未登录，请单独填写电费学号",
+                            error = false,
                         )
                     }
                     return@launch
@@ -107,7 +113,7 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
             return
         }
         viewModelScope.launch {
-            container.settings.setAccount(account)
+            container.settings.setElectricityAccount(account)
             _state.update { it.copy(needsAccount = false, message = null, error = false) }
             refresh()
         }
@@ -117,6 +123,40 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
         val threshold = value.coerceIn(1, 100)
         _state.update { it.copy(threshold = threshold, message = null, error = false) }
         viewModelScope.launch { container.settings.setElectricityThreshold(threshold) }
+    }
+
+    fun unbind(room: ElectricityRoom) {
+        if (room.roomVerify.isBlank()) {
+            _state.update { it.copy(message = "没有找到这个房间的解绑标识，请刷新后重试", error = true) }
+            return
+        }
+        val account = _state.value.account
+        if (account.isBlank()) {
+            _state.update { it.copy(message = "请先在电费页补录学号后再解绑", error = true) }
+            return
+        }
+        if (_state.value.busy) return
+        _state.update { it.copy(busy = true, message = null, error = false) }
+        viewModelScope.launch {
+            when (val outcome = container.electricityRepository.unbindRoom(account, room.roomVerify)) {
+                is ElectricityBindOutcome.Success -> {
+                    _state.update {
+                        it.copy(
+                            rooms = it.rooms.filterNot { item -> item.roomVerify == room.roomVerify },
+                            busy = false,
+                            message = "已解绑 ${room.roomName}",
+                            error = false,
+                        )
+                    }
+                }
+                is ElectricityBindOutcome.Failed -> {
+                    _state.update { it.copy(busy = false, message = outcome.message, error = true) }
+                }
+                ElectricityBindOutcome.Unavailable -> {
+                    _state.update { it.copy(busy = false, message = "解绑接口暂时不可用，请稍后再试", error = true) }
+                }
+            }
+        }
     }
 
     private fun load() {

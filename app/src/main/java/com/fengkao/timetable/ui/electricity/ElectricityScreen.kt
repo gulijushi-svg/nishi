@@ -69,6 +69,7 @@ fun ElectricityScreen(model: ElectricityViewModel, modifier: Modifier = Modifier
     var thresholdDialog by rememberSaveable { mutableStateOf(false) }
     var accountDialogDismissed by rememberSaveable { mutableStateOf(false) }
     var showBindDialog by rememberSaveable { mutableStateOf(false) }
+    var unbindTarget by remember { mutableStateOf<ElectricityRoom?>(null) }
 
     PullToRefreshBox(
         isRefreshing = state.busy && !state.recoveringAccount,
@@ -134,12 +135,12 @@ fun ElectricityScreen(model: ElectricityViewModel, modifier: Modifier = Modifier
             if (state.needsAccount && accountDialogDismissed) {
                 item {
                     Button(onClick = { accountDialogDismissed = false }, modifier = Modifier.fillMaxWidth()) {
-                        Text("补入学号")
+                        Text("填写电费学号")
                     }
                 }
             }
             items(state.rooms, key = { it.roomName }) { room ->
-                ElectricityRoomCard(room, state.threshold)
+                ElectricityRoomCard(room, state.threshold) { unbindTarget = room }
             }
             item {
                 ThresholdCard(state.threshold) { thresholdDialog = true }
@@ -163,6 +164,22 @@ fun ElectricityScreen(model: ElectricityViewModel, modifier: Modifier = Modifier
                 showBindDialog = false
                 model.refresh()
             },
+        )
+    }
+
+    unbindTarget?.let { room ->
+        AlertDialog(
+            onDismissRequest = { unbindTarget = null },
+            title = { Text("解绑房间") },
+            text = { Text("确定解绑「${room.roomName}」吗？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    unbindTarget = null
+                    model.unbind(room)
+                }) { Text("解绑") }
+            },
+            dismissButton = { TextButton(onClick = { unbindTarget = null }) { Text("取消") } },
+            containerColor = CardWhite,
         )
     }
 
@@ -198,14 +215,14 @@ fun ElectricityScreen(model: ElectricityViewModel, modifier: Modifier = Modifier
         var account by rememberSaveable { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { accountDialogDismissed = true },
-            title = { Text("补录教务学号") },
+            title = { Text("填写电费学号") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("未能从已登录的教务个人信息中恢复学号。补录后会保存到初始化使用的同一账户位置。", color = InkGray, fontSize = 12.sp, lineHeight = 18.sp)
+                    Text("教务系统未登录时，电费查询需要单独填写学号。该学号只用于电费查询，不影响课表和成绩。", color = InkGray, fontSize = 12.sp, lineHeight = 18.sp)
                     OutlinedTextField(
                         value = account,
                         onValueChange = { account = it.filter(Char::isDigit).take(32) },
-                        label = { Text("学号") },
+                        label = { Text("电费学号") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     )
@@ -224,13 +241,16 @@ fun ElectricityScreen(model: ElectricityViewModel, modifier: Modifier = Modifier
 }
 
 @Composable
-private fun ElectricityRoomCard(room: ElectricityRoom, threshold: Int) {
+private fun ElectricityRoomCard(room: ElectricityRoom, threshold: Int, onUnbind: () -> Unit) {
     val low = room.remainingKwh < threshold
     val accent = if (low) Color(0xFFD64B4B) else BrandGreen
     Surface(color = CardWhite, shape = RoundedCornerShape(20.dp)) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(room.roomName, color = InkDark, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                TextButton(onClick = onUnbind) {
+                    Text("解绑", color = InkGray, fontSize = 12.sp)
+                }
                 if (low) {
                     Icon(Icons.Outlined.BatteryAlert, null, tint = accent, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(4.dp))

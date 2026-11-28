@@ -83,6 +83,7 @@ object ElectricityParser {
             usedKwh = used,
             remainingKwh = remaining,
             isPoweredOn = poweredOn,
+            roomVerify = text(room, "roomverify"),
         )
     }
 

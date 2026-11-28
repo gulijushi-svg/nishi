@@ -14,6 +14,7 @@ data class ElectricityRoom(
     val usedKwh: Double,
     val remainingKwh: Double,
     val isPoweredOn: Boolean,
+    val roomVerify: String = "",
 )
 
 @Serializable

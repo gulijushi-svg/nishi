@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,6 +49,7 @@ fun ElectricityBindDialog(
     var build by remember { mutableStateOf<ElectricityArea?>(null) }
     var floor by remember { mutableStateOf<ElectricityArea?>(null) }
     var room by remember { mutableStateOf<ElectricityArea?>(null) }
+    var accountInput by rememberSaveable { mutableStateOf(account) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -62,7 +64,7 @@ fun ElectricityBindDialog(
             return@LaunchedEffect
         }
         busy = true
-        zones = repository.zones(account)
+        zones = repository.zones(accountInput)
         busy = false
         if (zones.isEmpty()) error = "没有获取到校区列表，请检查网络后重试"
     }
@@ -75,7 +77,7 @@ fun ElectricityBindDialog(
                 busy = true
                 error = null
                 scope.launch {
-                    builds = repository.builds(account, item.id)
+                    builds = repository.builds(accountInput, item.id)
                     busy = false
                     if (builds.isEmpty()) fail("没有获取到楼栋列表")
                 }
@@ -86,7 +88,7 @@ fun ElectricityBindDialog(
                 busy = true
                 error = null
                 scope.launch {
-                    floors = repository.floors(account, item.id)
+                    floors = repository.floors(accountInput, item.id)
                     busy = false
                     if (floors.isEmpty()) fail("没有获取到楼层列表")
                 }
@@ -97,7 +99,7 @@ fun ElectricityBindDialog(
                 busy = true
                 error = null
                 scope.launch {
-                    rooms = repository.rooms(account, item.id)
+                    rooms = repository.rooms(accountInput, item.id)
                     busy = false
                     if (rooms.isEmpty()) fail("没有获取到房间列表")
                 }
@@ -111,6 +113,10 @@ fun ElectricityBindDialog(
     }
 
     fun bind() {
+        if (accountInput.isBlank()) {
+            error = "请先填写完美校园账号 / 学号"
+            return
+        }
         val z = zone ?: return
         val b = build ?: return
         val f = floor ?: return
@@ -118,12 +124,18 @@ fun ElectricityBindDialog(
         busy = true
         error = null
         scope.launch {
-            when (val outcome = repository.bindRoom(account, z.id, b.id, f.id, r.id)) {
+            when (val outcome = repository.bindRoom(accountInput, z.id, b.id, f.id, r.id)) {
                 is ElectricityBindOutcome.Success -> {
                     busy = false
                     onBound()
                 }
-                is ElectricityBindOutcome.Failed -> fail(outcome.message)
+                is ElectricityBindOutcome.Failed -> {
+                    if (outcome.message.contains("人员信息不存在")) {
+                        fail("完美校园没有这个账号，请先在完美校园注册/绑定，或填写正确的电费账号")
+                    } else {
+                        fail(outcome.message)
+                    }
+                }
                 ElectricityBindOutcome.Unavailable -> fail("绑定接口暂时不可用，请稍后再试")
             }
         }
@@ -134,6 +146,16 @@ fun ElectricityBindDialog(
         title = { Text(if (step == 4) "确认绑定" else "绑定房间") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = accountInput,
+                    onValueChange = { accountInput = it.filter(Char::isDigit).take(32) },
+                    label = { Text("完美校园账号 / 学号") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 if (busy) {
                     CircularProgressIndicator(Modifier.padding(12.dp))
                 }

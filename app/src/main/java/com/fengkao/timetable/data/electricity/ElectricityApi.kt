@@ -1,6 +1,6 @@
 package com.fengkao.timetable.data.electricity
 
-import android.util.Base64
+import java.util.Base64
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -42,6 +42,9 @@ class ElectricityApi(
                 .put("roomnum", roomNum),
             account,
         )
+
+    fun unbindRoom(account: String, roomVerify: String): String =
+        post("unbindroom", JSONObject().put("roomverify", roomVerify), account)
 
     fun roomByAccount(account: String, accountNum: String): String =
         post("getroombyaccountnum", JSONObject().put("account_num", accountNum), account)
@@ -127,13 +130,13 @@ class ElectricityApi(
     private fun encrypt(value: String, key: String): String {
         val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key.toByteArray(Charsets.UTF_8), "AES"))
-        return Base64.encodeToString(cipher.doFinal(value.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
+        return Base64.getEncoder().encodeToString(cipher.doFinal(value.toByteArray(Charsets.UTF_8)))
     }
 
     private fun decrypt(value: String, key: String): String {
         val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
         cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key.toByteArray(Charsets.UTF_8), "AES"))
-        return String(cipher.doFinal(Base64.decode(value, Base64.NO_WRAP)), Charsets.UTF_8)
+        return String(cipher.doFinal(Base64.getDecoder().decode(value)), Charsets.UTF_8)
     }
 
     private companion object {

@@ -10,3 +10,16 @@
 # OkHttp
 -dontwarn okhttp3.**
 -dontwarn okio.**
+
+
+# Retrofit / Gson model retention
+-keepattributes Signature, InnerClasses, EnclosingMethod, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+-keep,allowobfuscation interface com.fengkao.timetable.data.** { *; }
+-keepclassmembers,allowobfuscation class * {
+    @retrofit2.http.* <methods>;
+}
+-keep class com.fengkao.timetable.data.** { *; }
+-keepclassmembers class com.fengkao.timetable.data.** { *; }
+-dontwarn retrofit2.**
+-dontwarn okhttp3.**
+-dontwarn javax.annotation.**

@@ -1,5 +1,6 @@
 package com.fengkao.timetable.ui
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.spring
@@ -128,6 +129,7 @@ val LocalTabPressScale = staticCompositionLocalOf<() -> Float> { { 1f } }
 val LocalArrangeMode = staticCompositionLocalOf<(Boolean) -> Unit> { {} }
 
 /** 主框架：内容 + 悬浮液态玻璃底栏（backdrop 实时折射课程内容） */
+@SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun MainScaffold(viewModel: MainViewModel) {
     val scaffoldState by remember(viewModel) {
