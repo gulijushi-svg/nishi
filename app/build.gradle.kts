@@ -29,8 +29,8 @@ android {
         applicationId = "com.fengkao.timetable"
         minSdk = 26
         targetSdk = 36
-        versionCode = 47
-versionName = "1.0.3"
+        versionCode = 48
+versionName = "1.0.4"
         buildConfigField("String", "WATER_API_GATEWAY", waterConfig("API_GATEWAY"))
         buildConfigField("String", "WATER_API_CID", waterConfig("API_CID"))
         manifestPlaceholders["appName"] = "泥石"
