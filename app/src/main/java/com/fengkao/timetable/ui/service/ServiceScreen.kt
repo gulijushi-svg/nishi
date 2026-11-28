@@ -133,17 +133,18 @@ private fun ServiceSwitcher(
         LaunchedEffect(selected) {
             position.animateTo(selected.toFloat(), spring(dampingRatio = 0.86f, stiffness = 520f))
         }
-        // 玻璃底槽：与底栏同一套材质层级，内衬一层浅灰让槽体在浅色画布上读得出来
+        // 玻璃底槽：外层圆角 22dp，内层药丸 19dp + 3dp 间距，保持同心圆角。
+        // 不再额外铺一层直角 drawRect 底色，避免方形底色从圆角四周露出。
         Box(
-            Modifier.fillMaxSize().liquidGlassSurface(
-                backdrop = backdrop,
-                elevation = GlassElevation.Control,
-                corner = 22.dp,
-                shadowAlpha = 0.10f,
-                onSurface = {
-                    drawRect(if (IsDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.035f))
-                },
-            ),
+            Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(22.dp))
+                .liquidGlassSurface(
+                    backdrop = backdrop,
+                    elevation = GlassElevation.Control,
+                    corner = 22.dp,
+                    shadowAlpha = 0.10f,
+                ),
         ) {}
         // 选中药丸：白玻璃滑块，位置随选择滑动
         Box(

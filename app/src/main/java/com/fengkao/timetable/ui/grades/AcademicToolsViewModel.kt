@@ -63,15 +63,6 @@ class AcademicToolsViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(message = message) }
     }
 
-    fun drop(course: SelectedCourse) = request("退课", { repository.dropCourse(course) }) { message ->
-        _state.update {
-            it.copy(
-                selected = it.selected.filterNot { c -> c.doId == course.doId },
-                message = message,
-            )
-        }
-    }
-
     fun exportSchedule(schedule: CachedSchedule) {
         val path = runCatching {
             AcademicPdfExporter.schedule(getApplication(), schedule)

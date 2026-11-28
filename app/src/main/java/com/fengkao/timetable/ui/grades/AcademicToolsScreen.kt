@@ -14,7 +14,6 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -73,13 +72,13 @@ internal fun AcademicToolsScreen(
         SettingsItem("通知消息", Icons.Outlined.Notifications, "停补换课与教务通知") { onNotices() }
     }
     SettingsSection("选课") {
-        SettingsItem("已选课程", Icons.Outlined.Assignment, "查看并退选课程", divider = true) { onSelected() }
+        SettingsItem("已选课程", Icons.Outlined.Assignment, "查看已选课程", divider = true) { onSelected() }
         SettingsItem("板块课", Icons.Outlined.ShoppingCart, "板块 1 / 2 / 3 与选课") { onBlocks() }
     }
     SettingsSection("导出") {
         SettingsItem("导出 PDF", Icons.Outlined.Description, "课程表与学业成绩单") { onExport() }
     }
-    SettingsHint("所有页面共用当前教务登录会话；选课、退课结果以教务系统为准。")
+    SettingsHint("所有页面共用当前教务登录会话；选课结果以教务系统为准。")
 }
 
 @Composable
@@ -110,9 +109,9 @@ internal fun AcademicNoticesPage(state: AcademicToolsState) {
 }
 
 @Composable
-internal fun AcademicSelectedPage(state: AcademicToolsState, onDrop: (SelectedCourse) -> Unit) {
+internal fun AcademicSelectedPage(state: AcademicToolsState) {
     ToolStatus(state)
-    if (state.selected.isNotEmpty()) SelectedCard(state.selected, onDrop)
+    if (state.selected.isNotEmpty()) SelectedCard(state.selected)
     else if (state.loading == null) SettingsHint("还没有已选课程")
 }
 
@@ -191,7 +190,7 @@ private fun NoticeCard(notices: List<AcademicNotice>) {
 }
 
 @Composable
-private fun SelectedCard(courses: List<SelectedCourse>, onDrop: (SelectedCourse) -> Unit) {
+private fun SelectedCard(courses: List<SelectedCourse>) {
     SettingsSection("已选课程") {
         courses.forEach { course ->
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -200,7 +199,6 @@ private fun SelectedCard(courses: List<SelectedCourse>, onDrop: (SelectedCourse)
                     Text(listOf(course.teacher, course.credit + " 学分", course.place).filter { it.isNotBlank() }.joinToString(" · "),
                         color = InkGray, fontSize = 11.sp)
                 }
-                TextButton(onClick = { onDrop(course) }) { Text("退课", color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
             }
         }
     }

@@ -104,7 +104,7 @@ fun LearningScreen(viewModel: MainViewModel, onNeedLogin: (() -> Unit)? = null) 
                         }
                         LearningPage.SELECTED -> {
                             LaunchedEffect(Unit) { toolsModel.loadSelected() }
-                            AcademicSelectedPage(toolsState, toolsModel::drop)
+                            AcademicSelectedPage(toolsState)
                         }
                         LearningPage.BLOCKS -> AcademicBlocksPage(
                             state = toolsState,

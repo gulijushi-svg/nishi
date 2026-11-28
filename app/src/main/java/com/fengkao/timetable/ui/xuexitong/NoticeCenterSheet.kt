@@ -337,9 +337,9 @@ fun NoticeCenterSheet(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(13.dp))
                     .background(NoticeCard)
-                    .border(1.dp, NoticeHairline, RoundedCornerShape(12.dp))
+                    .border(1.dp, NoticeHairline, RoundedCornerShape(13.dp))
                     .padding(3.dp),
                 horizontalArrangement = Arrangement.spacedBy(3.dp),
             ) {

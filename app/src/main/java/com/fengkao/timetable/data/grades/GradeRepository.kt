@@ -451,27 +451,6 @@ class GradeRepository(
         else ApiResult.Err(json?.optString("msg").orEmpty().ifBlank { "选课失败：$body" })
     }
 
-    /** 退课。 */
-    suspend fun dropCourse(course: SelectedCourse): ApiResult<String> = withContext(Dispatchers.IO) {
-        if (!sessionReady) return@withContext sessionError()
-        val term = TermCalculator.autoTerm()
-        val xqm = if (term.term == 1) "3" else "12"
-        val body = runCatching {
-            post(
-                baseUrl + "xsxk/zzxkyzb_tuikBcZzxkYzb.html?gnmkdm=N253512",
-                FormBody.Builder()
-                    .add("jxb_ids", course.doId).add("kch_id", course.courseId)
-                    .add("xkxnm", term.xnm.toString()).add("xkxqm", xqm).build(),
-            )
-        }.getOrElse { return@withContext ApiResult.Err(it.message ?: "退课失败") }
-        if (loginPage(body)) {
-            sessionReady = false
-            return@withContext ApiResult.Err("教务会话已失效，请重新登录")
-        }
-        if (body.contains("1") || body.contains("成功")) ApiResult.Ok("退课成功")
-        else ApiResult.Err("退课失败：$body")
-    }
-
     /** 学业生涯概览（GPA、学分统计）。 */
     suspend fun fetchAcademiaOverview(): ApiResult<AcademicOverview> = withContext(Dispatchers.IO) {
         if (!sessionReady) return@withContext sessionError()
